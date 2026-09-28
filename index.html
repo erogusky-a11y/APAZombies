@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Stacks Are Overrun: An APA Style Survival Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Pixelify+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#1C1612; --page-2:#2B211B; --page-ink:#E9DFC8; --page-dim:#A89A80;
+  --card:#F2EAD3; --card-line:#C9D6DE; --ink:#231C17; --ink-soft:#5B4E42;
+  --rule:#B3261E; --cure:#3FC1B0; --cure-deep:#1F8577; --rot:#8A9A5B; --brass:#C49A45;
+  --wood:#5A3B25; --wood-2:#6E4A2F;
+  --pixel:"Pixelify Sans","Courier New",monospace;
+  --type:"Courier Prime","Courier New",Courier,monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]){ --page:#2A211B; --page-2:#3A2D24; } }
+:root[data-theme="dark"]{ --page:#1C1612; --page-2:#2B211B; }
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--page);color:var(--page-ink);font-family:var(--type);font-size:17px;line-height:1.5}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--cure);outline-offset:3px}
+canvas.px{image-rendering:pixelated;image-rendering:crisp-edges;display:block}
+.wrap{max-width:980px;margin:0 auto;padding:24px 18px 48px}
+.screen{display:none}
+.screen.on{display:block}
+
+.sound{
+  position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:10px;z-index:60;
+  font-family:var(--pixel);font-size:.95rem;background:var(--ink);color:var(--card);
+  border:2px solid var(--page-dim);padding:6px 10px;box-shadow:3px 3px 0 #000;
+}
+.sound[aria-pressed="false"]{color:var(--page-dim)}
+
+/* title */
+.title-screen{min-height:88vh;display:flex;flex-direction:column;justify-content:center;gap:18px}
+.title-screen h1{font-family:var(--pixel);font-weight:700;color:var(--rot);font-size:clamp(2.8rem,10vw,6.4rem);line-height:.95;margin:0;text-shadow:5px 5px 0 #000, 5px 5px 0 #000}
+.title-screen p{max-width:58ch;margin:0;color:var(--page-dim)}
+.title-screen .lede{color:var(--page-ink);font-size:1.12rem}
+.scene{width:100%;aspect-ratio:300/96;border:4px solid #000;box-shadow:6px 6px 0 #000}
+
+.btn{font-family:var(--pixel);font-weight:700;font-size:1.05rem;background:var(--cure);color:#0E2B27;border:0;border-radius:0;padding:11px 20px;box-shadow:4px 4px 0 #000}
+.btn:hover{filter:brightness(1.08)}
+.btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #000}
+.btn.ghost{background:var(--page-2);color:var(--page-ink);box-shadow:4px 4px 0 #000, inset 0 0 0 2px var(--page-dim)}
+.btn.ink{background:var(--ink);color:var(--card)}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.fine{font-size:.85rem;color:var(--page-dim)}
+
+/* map */
+.map-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin:24px 0 22px}
+.map-head h2{font-family:var(--pixel);font-weight:700;color:var(--rot);font-size:clamp(2rem,6vw,3.2rem);margin:0;line-height:1;text-shadow:4px 4px 0 #000}
+.map-head p{margin:6px 0 0;color:var(--page-dim);max-width:52ch}
+.map-body{display:grid;grid-template-columns:1fr 150px;gap:28px;align-items:start}
+.cabinet{background:var(--wood);padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:14px;border:4px solid #2a1a0e;box-shadow:8px 8px 0 #000}
+.drawer{position:relative;text-align:left;color:var(--ink);background:var(--wood-2);border:0;border-radius:0;padding:14px 14px 50px;min-height:150px;box-shadow:inset -4px -4px 0 #3a2616, inset 4px 4px 0 #8a6040}
+.drawer .label{background:var(--card);border:3px solid var(--brass);padding:8px 10px;display:block}
+.drawer .room{font-family:var(--pixel);font-weight:700;display:block;font-size:1.08rem}
+.drawer .topic{display:block;font-size:.88rem;color:var(--ink-soft)}
+.drawer .pull{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:64px;height:16px;background:var(--brass);box-shadow:inset 0 -4px 0 #8a6a2d, 0 4px 0 #2a1a0e}
+.drawer:not([disabled]):hover{transform:translateY(-3px)}
+.drawer[disabled]{cursor:not-allowed;filter:saturate(.4) brightness(.72)}
+.drawer .tape{position:absolute;inset:auto -6px 52px -6px;height:24px;background:repeating-linear-gradient(90deg,#D8B32A 0 16px,#231C17 16px 32px);transform:rotate(-4deg)}
+.drawer .done{position:absolute;right:12px;bottom:12px;font-family:var(--pixel);background:var(--cure);color:#0E2B27;font-weight:700;font-size:.85rem;padding:2px 8px}
+.vial-wrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+#vialCv{width:96px;height:288px}
+.vial-cap{font-family:var(--pixel);font-size:1rem;color:var(--page-ink);text-align:center}
+
+/* level */
+.lvl-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:24px 0 14px}
+.lvl-top h2{font-family:var(--pixel);font-weight:700;color:var(--rot);font-size:clamp(1.8rem,5vw,2.6rem);margin:0;line-height:1;text-shadow:3px 3px 0 #000}
+.lvl-top .sub{color:var(--page-dim);font-size:.9rem}
+.hall-wrap{position:relative;margin-bottom:22px}
+#hallCv{width:100%;aspect-ratio:360/96;border:4px solid #000;box-shadow:6px 6px 0 #000}
+.dist{position:absolute;top:10px;right:12px;font-family:var(--pixel);background:#000c;padding:2px 8px;font-size:.9rem}
+.dist.danger{color:#ff6b5b}
+.shake{animation:shake .35s}
+@keyframes shake{20%{transform:translate(-6px,2px)}40%{transform:translate(5px,-2px)}60%{transform:translate(-4px,1px)}80%{transform:translate(3px,0)}}
+
+.card{position:relative;background:var(--card);color:var(--ink);border-radius:0;padding:26px clamp(18px,4vw,40px) 54px;
+  background-image:linear-gradient(180deg,#0000 0 62px,var(--rule) 62px 64px,#0000 64px),repeating-linear-gradient(180deg,#0000 0 29px,var(--card-line) 29px 30px);
+  background-position:0 0,0 64px;border:4px solid #000;box-shadow:8px 8px 0 #000}
+.card::after{content:"";position:absolute;left:50%;bottom:16px;width:20px;height:20px;margin-left:-10px;background:var(--page);box-shadow:inset 3px 3px 0 #000}
+.card .qcount{font-family:var(--pixel);font-size:.95rem;color:var(--ink-soft);display:flex;justify-content:space-between;gap:10px;min-height:34px;margin-bottom:10px}
+.card .prompt{font-size:1.1rem;font-weight:700;margin:0 0 16px;max-width:66ch}
+.opts{display:grid;gap:10px}
+.opt{text-align:left;background:#fffaf0;color:var(--ink);border:3px solid var(--ink);border-radius:0;padding:10px 14px;line-height:1.45;box-shadow:3px 3px 0 var(--ink)}
+.opt:hover:not([disabled]){background:#fff;transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+.opt[disabled]{cursor:default}
+.opt.wrong{border-color:var(--rule);box-shadow:3px 3px 0 var(--rule);color:#8a7a6c;text-decoration:line-through;text-decoration-color:var(--rule);background:#f4e6de}
+.opt.right{border-color:var(--cure-deep);box-shadow:3px 3px 0 var(--cure-deep);background:#DDF3EE}
+.ref{padding-left:.5in;text-indent:-.5in;line-height:2;font-size:1.02rem;background:#fffaf0;border:3px dashed var(--ink-soft);padding-top:12px;padding-bottom:12px;padding-right:14px}
+.seg{font:inherit;background:none;border:0;padding:1px 2px;color:inherit;text-decoration:underline dotted #0006;text-underline-offset:4px}
+.seg:hover:not([disabled]){background:#F9E3A6}
+.seg.wrong{background:#f1d3cb;text-decoration:line-through}
+.seg.right{background:#BFEDE4;text-decoration:none;outline:2px solid var(--cure-deep)}
+.seg[disabled]{cursor:default}
+.hint{font-size:.88rem;color:var(--ink-soft);margin:10px 0 0}
+.feedback{margin-top:16px;padding:12px 14px;border-left:6px solid var(--ink);background:#fffaf0;max-width:70ch;display:none}
+.feedback.on{display:block}
+.feedback.good{border-color:var(--cure-deep)}
+.feedback.bad{border-color:var(--rule)}
+.feedback strong{display:block;margin-bottom:2px;font-family:var(--pixel);font-size:1.1rem}
+.card-actions{margin-top:16px;display:flex;gap:12px;flex-wrap:wrap}
+
+.modal{position:fixed;inset:0;background:#000d;display:none;align-items:flex-start;justify-content:center;padding:calc(20px + env(safe-area-inset-top,0px)) 14px calc(20px + env(safe-area-inset-bottom,0px));z-index:50;overflow:auto}
+.modal.on{display:flex}
+.modal .card{max-width:760px;width:100%;margin:auto}
+.notes h3{margin:0 0 20px;font-family:var(--pixel);font-size:1.4rem;min-height:34px}
+.notes h4{margin:20px 0 4px;font-size:1.02rem}
+.notes p,.notes li{max-width:68ch}
+.notes ul{padding-left:1.2em;margin:6px 0}
+.notes .ex{background:#fffaf0;border:2px solid #0003;padding:8px 12px;margin:8px 0}
+.notes .ex.hang{padding-left:calc(12px + .5in);text-indent:-.5in;line-height:2}
+.big-msg{font-family:var(--pixel);font-weight:700;font-size:clamp(2.2rem,7vw,3.6rem);line-height:1;margin:0 0 12px;color:var(--rule)}
+.big-msg.cure{color:var(--cure-deep)}
+
+.finale{min-height:80vh;display:flex;flex-direction:column;justify-content:center;gap:18px}
+.finale h2{font-family:var(--pixel);font-weight:700;font-size:clamp(2.6rem,9vw,5.4rem);color:var(--cure);margin:0;line-height:.95;text-shadow:5px 5px 0 #000}
+.finale p{max-width:60ch;margin:0}
+
+@media (max-width:720px){
+  .map-body{grid-template-columns:1fr}
+  .cabinet{grid-template-columns:1fr}
+  #vialCv{width:64px;height:192px}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important;animation:none!important} }
+</style>
+</head>
+<body>
+<button class="sound" id="soundBtn" aria-pressed="true">Sound on</button>
+<div class="wrap">
+
+  <section class="screen on" id="s-title">
+    <div class="title-screen">
+      <canvas class="px scene" id="titleCv" width="300" height="96" aria-hidden="true"></canvas>
+      <h1>The Stacks<br>Are Overrun</h1>
+      <p class="lede">Zombies have taken the library. Somewhere in the building are four pieces of an antidote, and the only way to earn them is to prove you know APA Style.</p>
+      <p>Clear each wing of the library by answering its questions. Wrong answers let the zombie shamble closer. Right answers shove it back. You can reread the field notes any time, and you can try as many times as you need.</p>
+      <div class="row">
+        <button class="btn" id="startBtn">Enter the library</button>
+        <button class="btn ghost" id="resetBtn" hidden>Start over</button>
+      </div>
+      <p class="fine">Rules follow the <i>Publication Manual of the American Psychological Association</i> (7th ed.) and the APA Style website.</p>
+    </div>
+  </section>
+
+  <section class="screen" id="s-map">
+    <div class="map-head">
+      <div><h2>Card Catalog</h2><p>Pick a drawer. Each wing opens after you clear the one before it.</p></div>
+      <button class="btn ghost" id="toTitle">Title screen</button>
+    </div>
+    <div class="map-body">
+      <div class="cabinet" id="cabinet"></div>
+      <div class="vial-wrap">
+        <canvas class="px" id="vialCv" width="32" height="96" aria-hidden="true"></canvas>
+        <div class="vial-cap" id="vialCap">Antidote<br>0 of 4</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="s-level">
+    <div class="lvl-top">
+      <div><h2 id="lvlName"></h2><div class="sub" id="lvlSub"></div></div>
+      <div class="row">
+        <button class="btn ghost" id="notesBtn">Field notes</button>
+        <button class="btn ghost" id="toMap">Back to catalog</button>
+      </div>
+    </div>
+    <div class="hall-wrap" id="hallWrap">
+      <canvas class="px" id="hallCv" width="360" height="96" aria-hidden="true"></canvas>
+      <div class="dist" id="dist"></div>
+    </div>
+    <div class="card" id="qcard">
+      <div class="qcount"><span id="qnum"></span><span id="qroom"></span></div>
+      <p class="prompt" id="prompt"></p>
+      <div id="answers"></div>
+      <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+      <div class="card-actions"><button class="btn ink" id="nextBtn" hidden>Next card</button></div>
+    </div>
+  </section>
+
+  <section class="screen" id="s-finale">
+    <div class="finale">
+      <canvas class="px scene" id="finaleCv" width="300" height="96" aria-hidden="true"></canvas>
+      <h2>The library<br>is cured.</h2>
+      <p>You mixed all four pieces of the antidote. The shambling stops, the groaning turns into confused muttering about overdue fines, and the reference desk opens again.</p>
+      <p>Everything you used today: credit every source, pair each in-text citation with a reference entry, format the entries exactly, and set up the paper the way APA expects.</p>
+      <div class="row"><button class="btn" id="againBtn">Play again</button><button class="btn ghost" id="reviewBtn">Review the catalog</button></div>
+    </div>
+  </section>
+</div>
+
+<div class="modal" id="m-notes" role="dialog" aria-modal="true" aria-labelledby="notesTitle">
+  <div class="card notes">
+    <h3 id="notesTitle"></h3>
+    <div id="notesBody"></div>
+    <div class="card-actions"><button class="btn ink" id="closeNotes">Face the zombie</button></div>
+  </div>
+</div>
+<div class="modal" id="m-msg" role="dialog" aria-modal="true" aria-labelledby="msgTitle">
+  <div class="card">
+    <p class="big-msg" id="msgTitle"></p>
+    <div id="msgBody"></div>
+    <div class="card-actions" id="msgActions"></div>
+  </div>
+</div>
+
+<script>
+const LEVELS = [
+{
+  room:"Circulation Desk", topic:"Why we cite", piece:"the base serum",
+  notes:`
+  <p>APA Style asks you to credit every idea, word, number, or image you take from someone else. Citing shows readers where your evidence came from, lets them find it, and keeps your own ideas separate from borrowed ones.</p>
+  <h4>What needs a citation</h4>
+  <ul>
+    <li>Direct quotations</li>
+    <li>Paraphrases and summaries, even when every word is your own</li>
+    <li>Statistics, data, charts, and images</li>
+  </ul>
+  <p>Common knowledge, like facts most readers already know and could find in many general sources, does not need one.</p>
+  <h4>Every citation has two parts</h4>
+  <ul>
+    <li>An <b>in-text citation</b> in your sentence: author and year.</li>
+    <li>A matching <b>reference list entry</b> at the end of the paper with the full details.</li>
+  </ul>
+  <p>Each in-text citation points to exactly one reference entry, and every reference entry is cited somewhere in the text. The author name is the link between them, since the reference list is alphabetized by author.</p>`,
+  qs:[
+    {type:"mc", prompt:"You read a study and put its findings completely in your own words. Do you need to cite it?",
+     opts:[
+      {t:"Yes. Paraphrased ideas still belong to the original author.", ok:true, why:"Right. Changing the words doesn't change whose idea it is."},
+      {t:"No. Citations are only for direct quotations.", why:"Paraphrases and summaries need citations too. The idea is still borrowed even if the words are new."},
+      {t:"Only if you change fewer than half the words.", why:"There's no word-count loophole. Any borrowed idea gets cited."},
+      {t:"Only if the source is a book.", why:"Source type doesn't matter. Articles, websites, videos, and data all get cited."}
+    ]},
+    {type:"mc", prompt:"What are the two parts of every APA citation?",
+     opts:[
+      {t:"A footnote and a bibliography", why:"That's Chicago-style territory. APA uses author-date citations, not footnotes."},
+      {t:"An in-text citation and a reference list entry", ok:true, why:"Exactly. The short version goes in your sentence and the full version goes on the References page."},
+      {t:"A title page and an abstract", why:"Those are parts of a paper, not parts of a citation."},
+      {t:"A quotation and a page number", why:"Page numbers show up in some in-text citations, but the two parts are the in-text citation and the reference entry."}
+    ]},
+    {type:"mc", prompt:"Which of these would NOT need a citation?",
+     opts:[
+      {t:"A percentage you found in a government report", why:"Statistics always need a source. Readers will want to check them."},
+      {t:"A graph you copied into your paper", why:"Images and figures you borrow must be credited."},
+      {t:"The fact that the United States declared independence in 1776", ok:true, why:"Right. That's common knowledge that readers can find in countless general sources."},
+      {t:"An author's argument, summarized in one sentence", why:"A summary is still someone else's idea, so it needs a citation."}
+    ]},
+    {type:"mc", prompt:"Why does an APA in-text citation lead with the author's last name?",
+     opts:[
+      {t:"Because it looks more professional", why:"It's not about looks. The name has a job to do."},
+      {t:"So the reader can find the matching entry in the alphabetized reference list", ok:true, why:"Yes. The in-text citation is a signpost, and the name tells readers exactly where to look."},
+      {t:"Because APA papers never mention titles", why:"Titles appear in the reference list. The name leads first because the list is alphabetized by author."},
+      {t:"So the author gets paid", why:"Citations give credit, not royalties."}
+    ]}
+  ]
+},
+{
+  room:"Reading Room", topic:"In-text citations", piece:"the stabilizer",
+  notes:`
+  <p>APA uses the author-date system. Cite the author's last name and the year of publication.</p>
+  <h4>Two ways to cite</h4>
+  <div class="ex"><b>Parenthetical:</b> Beliefs about ability can shape how students respond to setbacks (Dweck, 2006).</div>
+  <div class="ex"><b>Narrative:</b> Dweck (2006) argued that beliefs about ability shape how students respond to setbacks.</div>
+  <h4>Number of authors</h4>
+  <ul>
+    <li><b>One author:</b> (Dweck, 2006)</li>
+    <li><b>Two authors:</b> name both every time. Use &amp; inside parentheses and "and" in a sentence: (Mueller &amp; Oppenheimer, 2014) or Mueller and Oppenheimer (2014).</li>
+    <li><b>Three or more authors:</b> first author plus "et al." starting with the very first citation: (Freeman et al., 2014).</li>
+  </ul>
+  <h4>Quotations</h4>
+  <ul>
+    <li>Direct quotations need a page number: (Author, Year, p. 12) or pp. 12–13 for a range.</li>
+    <li>A quotation of 40 words or more becomes a <b>block quotation</b>: start it on a new line, indent the whole block 0.5 in., and drop the quotation marks.</li>
+  </ul>
+  <h4>Several sources at once</h4>
+  <p>Put them in one set of parentheses, in alphabetical order, separated by semicolons: (Dweck, 2006; Kahneman, 2011).</p>`,
+  qs:[
+    {type:"mc", prompt:"Which is a correct parenthetical citation for Carol Dweck's 2006 book <i>Mindset</i>?",
+     opts:[
+      {t:"(Dweck 2006)", why:"Close, but APA puts a comma between the author and the year."},
+      {t:"(Carol Dweck, 2006)", why:"Use the last name only. First names and initials stay out of in-text citations."},
+      {t:"(Dweck, 2006)", ok:true, why:"Correct. Last name, comma, year."},
+      {t:"(<i>Mindset</i>, 2006)", why:"Only use a title when there's no author. Dweck is the author, so use her name."}
+    ]},
+    {type:"mc", prompt:"Pick the correct narrative citation for Mueller and Oppenheimer's 2014 study on note taking.",
+     opts:[
+      {t:"Mueller &amp; Oppenheimer (2014) found that students who typed their notes did worse on conceptual questions than students who wrote by hand.", why:"The ampersand belongs inside parentheses only. In a sentence, spell out \"and.\""},
+      {t:"Mueller and Oppenheimer (2014) found that students who typed their notes did worse on conceptual questions than students who wrote by hand.", ok:true, why:"Yes. Narrative citations use \"and,\" with the year in parentheses right after the names."},
+      {t:"(Mueller and Oppenheimer, 2014) found that students who typed their notes did worse on conceptual questions than students who wrote by hand.", why:"A parenthetical citation can't be the subject of a sentence, and inside parentheses it would need &amp; anyway."},
+      {t:"Mueller et al. (2014) found that students who typed their notes did worse on conceptual questions than students who wrote by hand.", why:"\"Et al.\" is for three or more authors. With two, you name both every time."}
+    ]},
+    {type:"mc", prompt:"Freeman et al. (2014) has seven authors. How do you cite it in parentheses the first time?",
+     opts:[
+      {t:"(Freeman, Eddy, McDonough, Smith, Okoroafor, Jordt, &amp; Wenderoth, 2014)", why:"That was never how APA 7 works in text. All authors go in the reference entry, not the in-text citation."},
+      {t:"(Freeman, et al., 2014)", why:"Almost. There's no comma between the name and \"et al.\""},
+      {t:"(Freeman et al., 2014)", ok:true, why:"Correct. Three or more authors means first author plus \"et al.\" from the very first citation."},
+      {t:"(Freeman and others, 2014)", why:"APA uses the Latin abbreviation \"et al.\""}
+    ]},
+    {type:"mc", prompt:"You're quoting a sentence word for word. What must your in-text citation include that a paraphrase citation doesn't strictly need?",
+     opts:[
+      {t:"The author's first name", why:"First names never go in the in-text citation."},
+      {t:"The page number (or paragraph number if there are no pages)", ok:true, why:"Right. Direct quotations need a location, like (Author, Year, p. 45). APA encourages page numbers for paraphrases but doesn't require them."},
+      {t:"The title of the book", why:"The title lives in the reference list."},
+      {t:"The publisher", why:"Publisher information is part of the reference entry, not the in-text citation."}
+    ]},
+    {type:"mc", prompt:"The passage you want to quote is 46 words long. How should it look?",
+     opts:[
+      {t:"In quotation marks, inside your paragraph like any other quote", why:"At 40 words or more, APA wants a block quotation instead."},
+      {t:"As a block quotation, indented 0.5 in., with no quotation marks", ok:true, why:"Yes. Forty words is the cutoff. The indent does the job the quotation marks would have done."},
+      {t:"In italics so it stands out", why:"APA doesn't italicize quotations. Long ones become indented blocks."},
+      {t:"Single-spaced in a smaller font", why:"Block quotations stay double-spaced in the same font as the rest of the paper."}
+    ]},
+    {type:"mc", prompt:"You want to cite Kahneman (2011) and Dweck (2006) for the same point. Which is correct?",
+     opts:[
+      {t:"(Kahneman, 2011; Dweck, 2006)", why:"Both sources can share parentheses, but they go in alphabetical order. D comes before K."},
+      {t:"(Dweck, 2006; Kahneman, 2011)", ok:true, why:"Correct. Alphabetical by first author, separated by a semicolon."},
+      {t:"(Dweck, 2006, Kahneman, 2011)", why:"Separate multiple sources with semicolons, not commas."},
+      {t:"(Dweck &amp; Kahneman, 2006, 2011)", why:"That would claim they co-wrote something. They're separate works, so cite them separately."}
+    ]}
+  ]
+},
+{
+  room:"The Stacks", topic:"Reference list entries", piece:"the catalyst",
+  notes:`
+  <h4>The References page</h4>
+  <ul>
+    <li>Starts on a new page with the label <b>References</b>, bold and centered.</li>
+    <li>Entries are double-spaced with a 0.5 in. hanging indent.</li>
+    <li>Entries are alphabetized by the first author's last name.</li>
+  </ul>
+  <h4>Authors</h4>
+  <p>Last name, then initials: Dweck, C. S. List up to 20 authors, with &amp; before the last one.</p>
+  <h4>Book</h4>
+  <p>Author. (Year). <i>Title in italics and sentence case</i>. Publisher.</p>
+  <div class="ex hang">Dweck, C. S. (2006). <i>Mindset: The new psychology of success</i>. Random House.</div>
+  <p>Sentence case means only the first word, the first word after a colon, and proper nouns are capitalized. APA 7 does not include the publisher's city.</p>
+  <h4>Journal article</h4>
+  <p>Author. (Year). Article title in sentence case. <i>Journal Name in Title Case</i>, <i>volume</i>(issue), pages. DOI</p>
+  <div class="ex hang">Mueller, P. A., &amp; Oppenheimer, D. M. (2014). The pen is mightier than the keyboard: Advantages of longhand over laptop note taking. <i>Psychological Science</i>, <i>25</i>(6), 1159–1168. https://doi.org/10.1177/0956797614524581</div>
+  <ul>
+    <li>The article title is <b>not</b> italicized. The journal name and volume number <b>are</b>.</li>
+    <li>The issue number goes in parentheses right after the volume, not italicized.</li>
+    <li>Write the DOI as a link: https://doi.org/... with no "DOI:" label and no "Retrieved from."</li>
+  </ul>`,
+  qs:[
+    {type:"mc", prompt:"Which book reference is formatted correctly?",
+     opts:[
+      {t:"Dweck, C. S. (2006). <i>Mindset: The New Psychology of Success</i>. Random House.", why:"Book titles use sentence case. \"New,\" \"Psychology,\" and \"Success\" should be lowercase."},
+      {t:"Dweck, C. S. (2006). <i>Mindset: The new psychology of success</i>. New York, NY: Random House.", why:"APA 7 dropped the publisher location. Just the publisher's name."},
+      {t:"Dweck, C. S. (2006). <i>Mindset: The new psychology of success</i>. Random House.", ok:true, why:"Correct. Initials, year, italic sentence-case title, publisher."},
+      {t:"Carol Dweck. (2006). <i>Mindset: The new psychology of success</i>. Random House.", why:"Authors are listed last name first with initials: Dweck, C. S."}
+    ]},
+    {type:"spot", prompt:"Find the error in this reference entry. Click the part that's wrong.",
+     segs:[
+      {t:"Kahneman, D."},
+      {t:"(2011)."},
+      {t:"<i>Thinking, Fast and Slow</i>.", err:true, why:"Book titles go in sentence case: <i>Thinking, fast and slow</i>."},
+      {t:"Farrar, Straus and Giroux."}
+     ], misses:{0:"The author is correct: last name, then initial.",1:"The year in parentheses followed by a period is correct.",3:"That's the publisher's actual name, and it's correct as written."}},
+    {type:"mc", prompt:"Which journal article reference is correct?",
+     opts:[
+      {t:"Mueller, P. A., &amp; Oppenheimer, D. M. (2014). <i>The pen is mightier than the keyboard: Advantages of longhand over laptop note taking</i>. Psychological Science, 25(6), 1159–1168. https://doi.org/10.1177/0956797614524581", why:"This one has the italics backwards. The article title is plain and the journal name and volume are italic."},
+      {t:"Mueller, P. A., &amp; Oppenheimer, D. M. (2014). The pen is mightier than the keyboard: Advantages of longhand over laptop note taking. <i>Psychological Science</i>, <i>25</i>(6), 1159–1168. https://doi.org/10.1177/0956797614524581", ok:true, why:"Correct. Plain sentence-case article title, italic journal and volume, issue in plain parentheses, DOI as a link."},
+      {t:"Mueller, P. A., and Oppenheimer, D. M. (2014). The pen is mightier than the keyboard: Advantages of longhand over laptop note taking. <i>Psychological Science</i>, <i>25</i>(6), 1159–1168. https://doi.org/10.1177/0956797614524581", why:"Reference entries use &amp; before the last author, not \"and.\""},
+      {t:"Mueller, P. A., &amp; Oppenheimer, D. M. (2014). The Pen Is Mightier Than the Keyboard: Advantages of Longhand Over Laptop Note Taking. <i>Psychological Science</i>, <i>25</i>(6), 1159–1168. https://doi.org/10.1177/0956797614524581", why:"Article titles use sentence case, not title case. Only the journal name gets title case."}
+    ]},
+    {type:"spot", prompt:"Find the error in this reference entry. Click the part that's wrong.",
+     segs:[
+      {t:"Roediger, H. L., III, &amp; Karpicke, J. D."},
+      {t:"(2006)."},
+      {t:"<i>Test-enhanced learning: Taking memory tests improves long-term retention</i>.", err:true, why:"Article titles are not italicized. Only the journal name and volume get italics."},
+      {t:"<i>Psychological Science</i>, <i>17</i>(3), 249–255."},
+      {t:"https://doi.org/10.1111/j.1467-9280.2006.01693.x"}
+     ], misses:{0:"The authors are right, including the suffix III placed after the initials.",1:"The year is formatted correctly.",3:"Journal name and volume italic, issue plain in parentheses, page range. All correct.",4:"The DOI is written as a link, which is exactly what APA 7 wants."}},
+    {type:"mc", prompt:"How should a DOI appear at the end of a reference entry?",
+     opts:[
+      {t:"doi:10.1177/0956797614524581", why:"That's the older format. APA 7 wants a full link."},
+      {t:"DOI: 10.1177/0956797614524581", why:"No label. Just the link."},
+      {t:"https://doi.org/10.1177/0956797614524581", ok:true, why:"Correct. A DOI is written as a working link with no label in front."},
+      {t:"Retrieved from https://doi.org/10.1177/0956797614524581", why:"APA 7 dropped \"Retrieved from\" for DOIs and URLs."}
+    ]},
+    {type:"mc", prompt:"Your reference list has works by Kahneman, Brooks, Mueller, and Dweck. Which entry comes first?",
+     opts:[
+      {t:"Kahneman", why:"The list is alphabetical, not in the order you used the sources."},
+      {t:"Mueller", why:"M is well down the alphabet."},
+      {t:"Brooks", ok:true, why:"Right. Brooks, Dweck, Kahneman, Mueller."},
+      {t:"Dweck", why:"Dweck comes second. B comes before D."}
+    ]},
+    {type:"mc", prompt:"Which description of the References page is correct?",
+     opts:[
+      {t:"Titled \"Works Cited,\" single-spaced, in the order sources appear", why:"\"Works Cited\" is MLA. APA uses \"References,\" double-spaced and alphabetized."},
+      {t:"Titled \"References,\" bold and centered, double-spaced, hanging indent, alphabetized", ok:true, why:"That's the full recipe."},
+      {t:"Titled \"Bibliography,\" with the first line of each entry indented", why:"Wrong label, and the indent runs the other way. APA uses a hanging indent, where lines after the first are indented."},
+      {t:"No title, since readers know what it is", why:"The page needs the label \"References,\" bold and centered."}
+    ]}
+  ]
+},
+{
+  room:"Computer Lab", topic:"Formatting the paper", piece:"the delivery vial",
+  notes:`
+  <h4>Page setup</h4>
+  <ul>
+    <li>1 in. margins on all sides.</li>
+    <li>Double-space everything, including the title page, block quotations, and references.</li>
+    <li>Indent the first line of each paragraph 0.5 in.</li>
+    <li>Page number in the top right corner of every page, starting with the title page.</li>
+  </ul>
+  <h4>Fonts APA accepts</h4>
+  <p>Any readable font, used consistently. APA lists these as examples: Times New Roman 12 pt, Calibri 11 pt, Arial 11 pt, Georgia 11 pt, Lucida Sans Unicode 10 pt. Always check what your instructor wants.</p>
+  <h4>Student title page</h4>
+  <p>Paper title (bold, centered), your name, your affiliation (department and school), course number and name, instructor name, and due date. Student papers don't need a running head unless your instructor asks for one.</p>
+  <h4>Headings</h4>
+  <ul>
+    <li><b>Level 1:</b> centered, bold, title case</li>
+    <li><b>Level 2:</b> flush left, bold, title case</li>
+  </ul>
+  <p>Repeat the paper's title, bold and centered, at the top of the first page of text. Don't label your introduction "Introduction." Readers can tell.</p>`,
+  qs:[
+    {type:"mc", prompt:"What margins does an APA paper use?",
+     opts:[
+      {t:"1 in. on all sides", ok:true, why:"Correct. One inch all around."},
+      {t:"1.5 in. on the left, 1 in. everywhere else", why:"That's a binding margin some theses use. APA's default is 1 in. everywhere."},
+      {t:"0.5 in. on all sides", why:"Too tight. APA uses 1 in."},
+      {t:"Whatever fits the paper on fewer pages", why:"Nice try. 1 in. on all sides."}
+    ]},
+    {type:"mc", prompt:"Which of these fonts does APA list as an acceptable choice?",
+     opts:[
+      {t:"Comic Sans, 12 pt", why:"Not on APA's list, and not a good look for academic writing."},
+      {t:"Times New Roman, 10 pt", why:"Right font, wrong size. Times New Roman is 12 pt."},
+      {t:"Calibri, 11 pt", ok:true, why:"Yes. Calibri 11 pt is one of APA's listed options."},
+      {t:"Papyrus, 14 pt", why:"Not an APA option. Save it for the zombie survival camp sign."}
+    ]},
+    {type:"mc", prompt:"How is a Level 1 heading formatted?",
+     opts:[
+      {t:"Flush left, bold, title case", why:"That's Level 2. Level 1 is centered."},
+      {t:"Centered, bold, title case", ok:true, why:"Correct."},
+      {t:"Centered, all caps, underlined", why:"APA 7 doesn't use all caps or underlining for headings."},
+      {t:"Flush left, italic, sentence case", why:"Not a Level 1 heading. Level 1 is centered and bold."}
+    ]},
+    {type:"mc", prompt:"Which item is NOT required on a student title page unless your instructor asks for it?",
+     opts:[
+      {t:"Course number and name", why:"This one is required on a student title page."},
+      {t:"Instructor name", why:"Required. Your instructor wants to see their name there."},
+      {t:"A running head", ok:true, why:"Right. APA 7 dropped the running head for student papers unless the instructor requires it."},
+      {t:"Due date", why:"Required on the student title page."}
+    ]},
+    {type:"mc", prompt:"Where do page numbers go?",
+     opts:[
+      {t:"Bottom center, starting on page 2", why:"APA puts them in the top right, and the title page counts as page 1."},
+      {t:"Top right on every page, including the title page", ok:true, why:"Correct."},
+      {t:"Top right, but skip the title page and references", why:"Every page gets a number, title page and references included."},
+      {t:"APA papers don't use page numbers", why:"They do. Top right, every page."}
+    ]},
+    {type:"mc", prompt:"Which parts of the paper are double-spaced?",
+     opts:[
+      {t:"Only the body paragraphs", why:"It's more than that. APA double-spaces everything."},
+      {t:"Everything except block quotations and the references", why:"Block quotations and references are double-spaced too."},
+      {t:"The entire paper, including the title page, block quotations, and references", ok:true, why:"Yes. Double-space it all."},
+      {t:"Nothing. APA switched to single spacing in the 7th edition.", why:"No such change. APA 7 is double-spaced throughout."}
+    ]}
+  ]
+}
+];
+
+
+
+/* ============ SOUND (synthesized, no files) ============ */
+const Snd = (()=>{
+  let ctx=null, on=true, master=null;
+  try{ on = localStorage.getItem("apaZombieSound")!=="off"; }catch(e){}
+  function ac(){
+    if(!ctx){ const C=window.AudioContext||window.webkitAudioContext; if(!C) return null; ctx=new C(); master=ctx.createGain(); master.gain.value=.55; master.connect(ctx.destination); }
+    if(ctx.state==="suspended") ctx.resume();
+    return ctx;
+  }
+  function tone(f,dur,{type="square",vol=.08,at=0,slide=null}={}){
+    if(!on) return; const c=ac(); if(!c) return;
+    const t=c.currentTime+at, o=c.createOscillator(), g=c.createGain();
+    o.type=type; o.frequency.setValueAtTime(f,t);
+    if(slide) o.frequency.exponentialRampToValueAtTime(slide,t+dur);
+    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t+dur+.02);
+  }
+  function noise(dur,{vol=.12,at=0,freq=800,type="lowpass"}={}){
+    if(!on) return; const c=ac(); if(!c) return;
+    const t=c.currentTime+at, len=Math.floor(c.sampleRate*dur), buf=c.createBuffer(1,len,c.sampleRate), d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=Math.random()*2-1;
+    const s=c.createBufferSource(); s.buffer=buf;
+    const fl=c.createBiquadFilter(); fl.type=type; fl.frequency.value=freq;
+    const g=c.createGain(); g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    s.connect(fl); fl.connect(g); g.connect(master); s.start(t);
+  }
+  const seq=(notes,step,opts)=>notes.forEach((n,i)=>n&&tone(n,step*1.6,{...opts,at:i*step}));
+  return {
+    get on(){return on},
+    toggle(){ on=!on; try{localStorage.setItem("apaZombieSound",on?"on":"off")}catch(e){} if(on) this.click(); return on; },
+    unlock(){ if(on) ac(); },
+    click(){ tone(880,.05,{vol:.05}); },
+    drawer(){ noise(.18,{vol:.18,freq:500}); tone(180,.15,{type:"triangle",vol:.12,slide:120,at:.05}); },
+    page(){ noise(.12,{vol:.1,freq:3000,type:"highpass"}); noise(.1,{vol:.07,freq:2500,type:"highpass",at:.1}); },
+    correct(){ seq([523,659,784,1047],.07,{vol:.07}); noise(.08,{vol:.12,freq:900}); },
+    wrong(){ tone(140,.4,{type:"sawtooth",vol:.1,slide:60}); noise(.45,{vol:.16,freq:320}); tone(98,.3,{type:"square",vol:.05,at:.05,slide:70}); },
+    clear(){ seq([523,659,784,0,784,1047],.11,{vol:.07}); seq([262,330,392,0,392,523],.11,{type:"triangle",vol:.09}); },
+    overrun(){ seq([392,330,262,196,147],.16,{type:"sawtooth",vol:.08}); noise(.9,{vol:.2,freq:250,at:.1}); },
+    cure(){ seq([523,659,784,1047,784,1047,1319,1568],.12,{vol:.06}); seq([262,0,392,0,523,0,659,784],.12,{type:"triangle",vol:.09}); },
+    start(){ seq([196,0,233,0,262,294,262],.12,{type:"triangle",vol:.1}); },
+    thump(vol){ tone(70,.14,{type:"sine",vol,slide:40}); tone(62,.12,{type:"sine",vol:vol*.7,slide:38,at:.17}); }
+  };
+})();
+let hbTimer=null;
+function startHeartbeat(){
+  stopHeartbeat();
+  const loop=()=>{
+    if(!$("s-level").classList.contains("on")) return;
+    const d=MAX_STEPS-steps;
+    if(!$("m-notes").classList.contains("on")) Snd.thump([.35,.28,.2,.13,.08][Math.max(0,Math.min(4,d))]);
+    hbTimer=setTimeout(loop,[420,560,760,1000,1300][Math.max(0,Math.min(4,d))]);
+  };
+  hbTimer=setTimeout(loop,600);
+}
+function stopHeartbeat(){ clearTimeout(hbTimer); hbTimer=null; }
+
+/* ============ PIXEL ART (16-bit style) ============ */
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* 20x32 sprites. o = outline. Each letter maps to a palette color. */
+const Z_TORSO = [
+".....oooooo.........",
+"....ohhhhhhoo.......",
+"...ohhhhhhhhho......",
+"...ohhglllllgo......",
+"...ohgllllllllo.....",
+"...ogglRrlRrllo.....",
+"...oGglllllllgo.....",
+"...oGgglllooogo.....",
+"....oGgglowwwo......",
+".....oGggggggo......",
+"......ooGGGoo.......",
+".......oGGo.........",
+".....oobbbbbooooooo.",
+"....obnnbbbbbglllllo",
+"....obnbbbbbBGggggGo",
+"....obbbbbbbBoooooo.",
+"....obbbtbbbBo......",
+"....oBbbbbbbBo......",
+"....oBbbbbtbBo......",
+"....oBBbbbbBBo......",
+"....opppppppPo......",
+"....oppPppppPo......"];
+const Z_LEGS_A = [
+"....oppPo.opPo......",
+"...oppPo..oppPo.....",
+"...oppPo...oppPo....",
+"..oppPo....oppPo....",
+"..oppPo.....oppo....",
+"..opPo......oppo....",
+".ogGo.......ogGo....",
+".okkko......okkko...",
+"okkkkko.....okkkkko.",
+"ooooooo.....ooooooo."];
+const Z_LEGS_B = [
+"....oppPpppPo.......",
+".....oppPppo........",
+".....oppPPpo........",
+".....oppooppo.......",
+"....oppo.oppo.......",
+"....oppo..opo.......",
+"....ogGo..ogGo......",
+"....okkko.okkko.....",
+"...okkkkkookkkko....",
+"...ooooooooooooo...."];
+const ZOMBIE = [Z_TORSO.concat(Z_LEGS_A), Z_TORSO.concat(Z_LEGS_B)];
+
+const PLAYER = [
+"......oooooo........",
+".....ohhhhhhoo......",
+"....ohhhhhhhhho.....",
+"....oHhhhhhhhhho....",
+"....osshhhhhhHHo....",
+"....osssssshhhHo....",
+"....oseSseshHHo.....",
+"....osssssSSHo......",
+".....osooSSo........",
+"......oSSSo.........",
+".......oSo..........",
+"....ooocccooo.......",
+"...oLLcccccCCo......",
+"..oyyyycccccCCo.....",
+"..owwwyycccccCo.....",
+"..oyyyyYccccCCoo....",
+"..oyyyyYcccccCCo....",
+"...oYYYocccccCCo....",
+"....osSoccccCCo.....",
+"....oocccccCCCo.....",
+".....ojjjjjjJo......",
+".....ojjjJjjJo......",
+".....ojjJoojJo......",
+".....ojjJo.ojJo.....",
+".....ojjJo.ojJo.....",
+".....ojjJo.ojjo.....",
+".....ojjJo.ojJo.....",
+".....ojjJo.ojJo.....",
+".....okkko.okkko....",
+"....okkkkkookkkko...",
+"....owwwwwwowwwwo...",
+"....ooooooooooooo..."];
+
+const Z_BASE = {o:"#16110d",h:"#3B2F2A",g:"#8FA85E",G:"#62773D",l:"#B5C97A",r:"#FF4A3A",R:"#5A140E",w:"#D8CFA8",
+  b:"#5A6F8C",B:"#3C4B63",n:"#7F94B0",t:"#7A1C14",p:"#4A4E3A",P:"#30331F",k:"#2A1E17"};
+const Z_PALS = [
+  Z_BASE,
+  {...Z_BASE,b:"#8C3B34",B:"#5E2621",n:"#B5574D",h:"#6B4A2A"},
+  {...Z_BASE,b:"#8C7A55",B:"#5E5138",n:"#B09B6E",h:"#1f1a18",p:"#3D4A63",P:"#28324A"},
+  {...Z_BASE,b:"#5E4E7A",B:"#3E3354",n:"#7F6EA0",h:"#8a6a2d"}
+];
+const CURE = {g:"#E0AE82",G:"#B07D57",l:"#F0C9A0",r:"#16110d",R:"#F0C9A0",t:"#3FC1B0",w:"#F2EAD3"};
+const CURED_PALS = [
+  {...Z_BASE,...CURE,b:"#3FC1B0",B:"#1F8577",n:"#7FE3D5",t:"#1F8577"},
+  {...Z_BASE,...CURE,b:"#D8B32A",B:"#9C7F18",n:"#F0D466",t:"#9C7F18",h:"#6B4A2A",g:"#C68C5E",G:"#8F6040",l:"#DCA87A",R:"#DCA87A"},
+  {...Z_BASE,...CURE,b:"#E37B5B",B:"#A5523A",n:"#F2A085",t:"#A5523A",h:"#1f1a18",g:"#8A5A3B",G:"#5F3C26",l:"#A97352",R:"#A97352"},
+  {...Z_BASE,...CURE,b:"#7F94B0",B:"#5A6F8C",n:"#A8BCD4",t:"#5A6F8C",h:"#8a6a2d"}
+];
+const P_PAL = {o:"#16110d",h:"#4A2E1E",H:"#2E1C12",s:"#E0AE82",S:"#B07D57",e:"#16110d",c:"#3FC1B0",C:"#1F8577",L:"#7FE3D5",
+  y:"#C0392B",Y:"#7A1C14",w:"#F2EAD3",j:"#3D5A80",J:"#283C57",k:"#2A1E17"};
+const BOOKS = [
+  ["#7a3328","#a44a3b","#4f1f18"],["#2f5a45","#44806a","#1d3a2c"],["#8a6a2d","#b89142","#5a441b"],
+  ["#3e3862","#5a538a","#26223f"],["#6f4b2c","#936640","#47301b"],["#7a3b52","#a3566f","#4d2333"],
+  ["#29485e","#3f6a88","#192d3b"],["#4d5b2c","#6c7f3f","#303a1b"],["#9a8f78","#c2b79c","#6a6250"]
+];
+
+function sprite(ctx,rows,x,y,pal,{tint=null}={}){
+  x=Math.round(x); y=Math.round(y);
+  for(let j=0;j<rows.length;j++){ const r=rows[j];
+    for(let i=0;i<r.length;i++){ const ch=r[i]; if(ch===".") continue;
+      ctx.fillStyle = tint && ch!=="o" ? tint : (pal[ch]||"#f0f"); ctx.fillRect(x+i,y+j,1,1); } }
+}
+function shadow(ctx,x,y){ ctx.fillStyle="rgba(0,0,0,.45)"; ctx.fillRect(Math.round(x)+3,y,14,2); ctx.fillRect(Math.round(x)+5,y+2,10,1); }
+function rng(seed){ return ()=>{ seed=(seed*16807)%2147483647; return (seed-1)/2147483646; }; }
+function box(x,px,py,w,h,base,light,dark){
+  x.fillStyle=base; x.fillRect(px,py,w,h);
+  if(light){ x.fillStyle=light; x.fillRect(px,py,1,h); x.fillRect(px,py,w,1); }
+  if(dark){ x.fillStyle=dark; x.fillRect(px+w-1,py,1,h); x.fillRect(px,py+h-1,w,1); }
+}
+
+function buildRoom(w,h,seed,floorY){
+  const c=document.createElement("canvas"); c.width=w; c.height=h; const x=c.getContext("2d"); const r=rng(seed);
+  x.fillStyle="#120c09"; x.fillRect(0,0,w,h);
+  // ceiling molding
+  box(x,0,0,w,4,"#3a2616","#5a3b25","#1f140c");
+  for(let ux=0; ux<w; ux+=66){
+    const L=ux+1, R=ux+64;
+    // back panel with vertical planks
+    x.fillStyle="#1a110c"; x.fillRect(L+4,9,56,floorY-10);
+    x.fillStyle="#140d09"; for(let vx=L+10; vx<R-4; vx+=9) x.fillRect(vx,9,1,floorY-10);
+    // crown
+    box(x,L,4,64,5,"#6e4a2f","#936640","#3a2616");
+    // posts
+    box(x,L,9,4,floorY-9,"#5a3b25","#7a5436","#3a2616");
+    box(x,R-4,9,4,floorY-9,"#5a3b25","#7a5436","#3a2616");
+    // shelves
+    for(let sy=10; sy+12<=floorY-3; sy+=13){
+      let bx=L+4;
+      while(bx<R-4){
+        let bw=3+Math.floor(r()*3), bh=6+Math.floor(r()*5);
+        if(bx+bw>R-4) bw=R-4-bx; if(bw<2) break;
+        if(r()<.07){ bx+=bw; continue; }
+        const [b,li,dk]=BOOKS[Math.floor(r()*BOOKS.length)];
+        const top=sy+11-bh;
+        x.fillStyle=b; x.fillRect(bx,top,bw,bh);
+        x.fillStyle=li; x.fillRect(bx,top,1,bh); x.fillRect(bx,top,bw,1);
+        x.fillStyle=dk; x.fillRect(bx+bw-1,top,1,bh);
+        if(bh>7 && r()<.6){ x.fillStyle="#c9a24a"; x.fillRect(bx+1,top+2,Math.max(1,bw-2),1); if(r()<.5) x.fillRect(bx+1,top+bh-3,Math.max(1,bw-2),1); }
+        bx+=bw;
+      }
+      // shelf board + shadow
+      box(x,L+4,sy+11,56,2,"#6e4a2f","#936640",null);
+      x.fillStyle="#0a0705"; x.fillRect(L+4,sy+13,56,1);
+    }
+    // cobweb in a top corner sometimes
+    if(r()<.5){ x.fillStyle="#9c958a88"; for(let k=0;k<5;k++){ x.fillRect(L+4+k,9+k,1,1); x.fillRect(L+4,9+k,k+1,1); } }
+  }
+  // baseboard
+  box(x,0,floorY-3,w,3,"#3a2616","#5a3b25","#1f140c");
+  // floor planks with perspective
+  let fy=floorY, rh=3;
+  while(fy<h){
+    let fx=-Math.floor(r()*20);
+    while(fx<w){
+      const len=18+Math.floor(r()*26), alt=r()<.5;
+      x.fillStyle=alt?"#4a3326":"#402c20"; x.fillRect(fx,fy,len,rh);
+      x.fillStyle=alt?"#5e4231":"#523a2a"; x.fillRect(fx,fy,len,1);
+      x.fillStyle="#24180f"; x.fillRect(fx+len-1,fy,1,rh);
+      fx+=len;
+    }
+    fy+=rh; rh=Math.min(rh+1,9);
+  }
+  // scattered paper
+  for(let k=0;k<Math.floor(w/60);k++){
+    const px=Math.floor(r()*(w-6)), py=floorY+4+Math.floor(r()*(h-floorY-8));
+    x.fillStyle="#cfc4a8"; x.fillRect(px,py,5,2); x.fillStyle="#a39a82"; x.fillRect(px,py+2,5,1);
+  }
+  return c;
+}
+
+/* ordered-dither lighting mask */
+const BAYER=[[0,8,2,10],[12,4,14,6],[3,11,1,9],[15,7,13,5]];
+function buildShade(w,h,lx,ly,rad){
+  const c=document.createElement("canvas"); c.width=w; c.height=h; const x=c.getContext("2d");
+  const img=x.createImageData(w,h), d=img.data;
+  for(let y=0;y<h;y++) for(let i=0;i<w;i++){
+    const dist=Math.hypot((i-lx),(y-ly)*1.5)/rad;
+    const v=Math.max(0,Math.min(1,dist*dist*.9+.05));
+    const t=(BAYER[y%4][i%4]+.5)/16;
+    const a=Math.min(.86,Math.floor(v*6+t)/6);
+    const p=(y*w+i)*4; d[p]=8; d[p+1]=5; d[p+2]=12; d[p+3]=Math.round(a*255);
+  }
+  x.putImageData(img,0,0); return c;
+}
+function lamp(ctx,lx,t){
+  const flick = RM?0:(Math.random()<.015?1:0);
+  ctx.fillStyle="#16110d"; ctx.fillRect(lx,0,1,8);
+  box(ctx,lx-6,8,13,2,"#2f5a3b","#44806a","#1d3a2c");
+  box(ctx,lx-8,10,17,3,"#2f5a3b","#44806a","#1d3a2c");
+  ctx.fillStyle=flick?"#6b6252":"#FFF3B8"; ctx.fillRect(lx-3,13,7,1);
+  ctx.fillStyle=flick?"#4d463b":"#FFE38A"; ctx.fillRect(lx-2,14,5,1);
+  return flick;
+}
+function light(ctx,mask,w,h,lx,t){
+  ctx.drawImage(mask,0,0);
+  const f=lamp(ctx,lx,t);
+  const wob=RM?0:Math.max(0,Math.sin(t/140))*.05;
+  if(f||wob){ ctx.fillStyle=`rgba(8,5,12,${f?.4:wob})`; ctx.fillRect(0,0,w,h); }
+}
+
+/* hallway (level) */
+const HW=360, HH=96, HFLOOR=72, HY=HFLOOR+12-32;
+const hall={cv:null,ctx:null,bg:null,mask:null,zx:10,tx:10,flash:0,red:0,parts:[],pal:Z_PALS[0]};
+function initHall(){ hall.cv=$("hallCv"); hall.ctx=hall.cv.getContext("2d"); hall.mask=buildShade(HW,HH,HW/2,14,HW*.62); }
+function newHallRoom(){ hall.bg=buildRoom(HW,HH,1000+cur*77,HFLOOR); hall.zx=hall.tx=10; hall.parts=[]; hall.pal=Z_PALS[cur%Z_PALS.length]; }
+function zTarget(){ return 10 + steps*(265/MAX_STEPS); }
+function burst(px,py,cols,n){ for(let i=0;i<n;i++) hall.parts.push({x:px,y:py,vx:(Math.random()-.5)*3,vy:-Math.random()*2.6,life:30+Math.random()*16,col:cols[i%cols.length]}); }
+function drawHall(t){
+  const c=hall.ctx; if(!c||!hall.bg) return;
+  hall.tx=zTarget(); hall.zx += (hall.tx-hall.zx)*(RM?1:.07);
+  c.drawImage(hall.bg,0,0);
+  const moving=Math.abs(hall.tx-hall.zx)>.5;
+  const f=RM?0:Math.floor(t/(moving?150:420))%2;
+  shadow(c,hall.zx,HY+31); 
+  sprite(c,ZOMBIE[f],hall.zx,HY+(RM?0:f),hall.pal,{tint:hall.flash>0&&(hall.flash%4<2)?"#ffffff":null});
+  const close=steps>=MAX_STEPS-1;
+  const px=320+(close&&!RM&&Math.random()<.5?(Math.random()<.5?-1:1):0);
+  shadow(c,px,HY+31);
+  sprite(c,PLAYER,px,HY+(RM?0:Math.floor(t/600)%2),P_PAL);
+  hall.parts=hall.parts.filter(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=.08; p.life--; c.fillStyle=p.col; c.fillRect(Math.round(p.x),Math.round(p.y),2,2); return p.life>0; });
+  light(c,hall.mask,HW,HH,HW/2,t);
+  if(hall.red>0){ c.fillStyle=`rgba(179,38,30,${hall.red/40})`; c.fillRect(0,0,HW,HH); hall.red--; }
+  if(hall.flash>0) hall.flash--;
+}
+
+/* title & finale */
+function makeParade(id,pals,seed,cured){
+  const cv=$(id), ctx=cv.getContext("2d"), W=cv.width, H=cv.height, FL=72, Y=FL+12-32;
+  const bg=buildRoom(W,H,seed,FL), mask=buildShade(W,H,W/2,14,W*.66);
+  const walkers=[0,1,2,3].map(i=>({x:-24+i*66, sp:(cured?.42:.2)+i*.03, ph:i*170, pal:pals[i%pals.length]}));
+  const sparks=[];
+  return (t)=>{
+    ctx.drawImage(bg,0,0);
+    walkers.forEach(w=>{
+      if(!RM){ w.x+=w.sp; if(w.x>W+4) w.x=-24; }
+      const f=RM?0:Math.floor((t+w.ph)/(cured?130:300))%2;
+      const hop=cured&&!RM?(f?3:0):(f?1:0);
+      shadow(ctx,w.x,Y+31);
+      sprite(ctx,ZOMBIE[f],w.x,Y-hop,w.pal);
+      if(cured&&!RM&&Math.random()<.06) sparks.push({x:w.x+4+Math.random()*14,y:Y+Math.random()*10,l:24});
+    });
+    if(!cured){ shadow(ctx,W-30,Y+31); sprite(ctx,PLAYER,W-30,Y+(RM?0:Math.floor(t/500)%2),P_PAL); }
+    for(let i=sparks.length-1;i>=0;i--){ const s=sparks[i]; s.y-=.4; s.l--; ctx.fillStyle=s.l%6<3?"#BFF5EC":"#6FE0D0"; ctx.fillRect(Math.round(s.x),Math.round(s.y),1,1); ctx.fillRect(Math.round(s.x)-1,Math.round(s.y)+1,3,1); ctx.fillRect(Math.round(s.x),Math.round(s.y)+2,1,1); if(s.l<=0) sparks.splice(i,1); }
+    light(ctx,mask,W,H,W/2,t);
+    if(cured){ ctx.fillStyle="rgba(63,193,176,.08)"; ctx.fillRect(0,0,W,H); }
+  };
+}
+
+/* antidote vial, 32x96 */
+const vial={lvl:0,target:0,bub:[]};
+function vb(y){ // inner bounds per row
+  if(y<22) return [12,19];
+  if(y<30){ const k=(y-22)/8; return [Math.round(12-8*k),Math.round(19+8*k)]; }
+  if(y<87) return [4,27];
+  if(y===87) return [5,26]; if(y===88) return [6,25]; return [8,23];
+}
+function drawVial(t){
+  const c=$("vialCv").getContext("2d");
+  vial.lvl+=(vial.target-vial.lvl)*(RM?1:.05);
+  c.clearRect(0,0,32,96);
+  box(c,12,0,8,7,"#8a6a2d","#b08a45","#5e4520");
+  c.fillStyle="#6e5222"; c.fillRect(13,3,6,1);
+  for(let y=7;y<=89;y++){
+    const [a,b]=vb(y);
+    c.fillStyle="rgba(210,235,232,.10)"; c.fillRect(a,y,b-a+1,1);
+    c.fillStyle="#cfe3e0"; c.fillRect(a-1,y,1,1); c.fillRect(b+1,y,1,1);
+    if(y>=22&&y<30){ const [pa,pb]=vb(y-1); if(pa>a+1){ c.fillRect(a,y,pa-a,1); c.fillRect(pb+1,y,b-pb,1);} }
+  }
+  c.fillStyle="#cfe3e0"; c.fillRect(8,90,16,1); c.fillRect(6,89,2,1); c.fillRect(24,89,2,1);
+  const top=89-Math.round(58*vial.lvl);
+  if(vial.lvl>.005){
+    for(let y=Math.max(top,31);y<=89;y++){
+      const [a,b]=vb(y);
+      c.fillStyle="#3FC1B0"; c.fillRect(a,y,b-a+1,1);
+      c.fillStyle="#6FE0D0"; c.fillRect(a,y,2,1);
+      c.fillStyle="#1F8577"; c.fillRect(b-3,y,4,1);
+      if(y>80){ c.fillStyle="#1F857766"; c.fillRect(a,y,b-a+1,1); }
+    }
+    const [a,b]=vb(top); c.fillStyle="#BFF5EC"; c.fillRect(a,top,b-a+1,1);
+    if(!RM&&Math.random()<.08) vial.bub.push({x:6+Math.floor(Math.random()*19),y:88});
+    vial.bub=vial.bub.filter(q=>{ q.y-=.4; if(q.y<top+2) return false; c.fillStyle="#BFF5EC"; c.fillRect(q.x,Math.round(q.y),1,1); return true; });
+  }
+  c.fillStyle="rgba(255,255,255,.55)"; c.fillRect(6,34,1,22); c.fillRect(7,36,1,8); c.fillRect(13,9,1,10);
+  c.fillStyle="#cfe3e0"; for(let k=1;k<4;k++){ const y=89-Math.round(58*k/4); c.fillRect(23,y,4,1); }
+}
+
+let titleDraw, finaleDraw;
+function loop(t){
+  if($("s-title").classList.contains("on")) titleDraw(t);
+  if($("s-map").classList.contains("on")) drawVial(t);
+  if($("s-level").classList.contains("on")) drawHall(t);
+  if($("s-finale").classList.contains("on")) finaleDraw(t);
+  requestAnimationFrame(loop);
+}
+
+/* ============ STATE ============ */
+const MAX_STEPS = 4;
+let cleared=[false,false,false,false];
+let cur=0, qi=0, steps=0, locked=false;
+function $(id){ return document.getElementById(id); }
+function load(){ try{ const s=JSON.parse(localStorage.getItem("apaZombieProgress")||"null"); if(Array.isArray(s)&&s.length===4) cleared=s.map(Boolean);}catch(e){} }
+function save(){ try{ localStorage.setItem("apaZombieProgress",JSON.stringify(cleared)); }catch(e){} }
+function show(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on"));
+  $(id).classList.add("on"); window.scrollTo(0,0);
+  if(id==="s-level") startHeartbeat(); else stopHeartbeat();
+}
+
+/* ============ MAP ============ */
+function renderMap(){
+  const cab=$("cabinet"); cab.innerHTML="";
+  LEVELS.forEach((L,i)=>{
+    const open=i===0||cleared[i-1];
+    const b=document.createElement("button"); b.className="drawer"; b.disabled=!open;
+    b.setAttribute("aria-label",`${L.room}: ${L.topic}${cleared[i]?", cleared":open?"":", locked"}`);
+    b.innerHTML=`<span class="label"><span class="room">${L.room}</span><span class="topic">${L.topic}</span></span>${!open?'<span class="tape"></span>':''}${cleared[i]?'<span class="done">Cleared</span>':''}<span class="pull"></span>`;
+    b.onclick=()=>{ Snd.drawer(); startLevel(i); };
+    cab.appendChild(b);
+  });
+  const n=cleared.filter(Boolean).length;
+  vial.target=n/4;
+  $("vialCap").innerHTML=`Antidote<br>${n} of 4`;
+  $("resetBtn").hidden=n===0;
+}
+
+/* ============ LEVEL ============ */
+function startLevel(i){
+  cur=i; qi=0; steps=0;
+  const L=LEVELS[i];
+  $("lvlName").textContent=L.room;
+  $("lvlSub").textContent=`${L.topic}. Earn ${L.piece}.`;
+  newHallRoom(); show("s-level"); updateDist(); renderQ(); openNotes();
+}
+function updateDist(){
+  const d=MAX_STEPS-steps, el=$("dist");
+  el.textContent = d<=1 ? "It's right behind you" : `${d} shelves away`;
+  el.classList.toggle("danger",d<=1);
+}
+function renderQ(){
+  const L=LEVELS[cur], Q=L.qs[qi]; locked=false;
+  $("qnum").textContent=`Card ${qi+1} of ${L.qs.length}`;
+  $("qroom").textContent=L.room;
+  $("prompt").innerHTML=Q.prompt;
+  const fb=$("feedback"); fb.className="feedback"; fb.innerHTML="";
+  $("nextBtn").hidden=true;
+  const ans=$("answers"); ans.innerHTML="";
+  if(Q.type==="mc"){
+    const wrap=document.createElement("div"); wrap.className="opts";
+    shuffle(Q.opts.map((o,k)=>k)).forEach(k=>{
+      const o=Q.opts[k], b=document.createElement("button");
+      b.className="opt"; b.innerHTML=o.t; b.onclick=()=>answerMC(b,o); wrap.appendChild(b);
+    });
+    ans.appendChild(wrap);
+  }else{
+    const p=document.createElement("p"); p.className="ref";
+    Q.segs.forEach((s,k)=>{ const b=document.createElement("button"); b.className="seg"; b.innerHTML=s.t; b.onclick=()=>answerSpot(b,Q,k); p.appendChild(b); p.appendChild(document.createTextNode(" ")); });
+    ans.appendChild(p);
+    const h=document.createElement("p"); h.className="hint"; h.textContent="Each underlined chunk is clickable. Only one has a mistake."; ans.appendChild(h);
+  }
+}
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function answerMC(btn,o){
+  if(locked||btn.disabled) return;
+  if(o.ok){ btn.classList.add("right"); document.querySelectorAll(".opt").forEach(b=>b.disabled=true); good(o.why); }
+  else{ btn.classList.add("wrong"); btn.disabled=true; bad(o.why); }
+}
+function answerSpot(btn,Q,k){
+  if(locked||btn.disabled) return;
+  const s=Q.segs[k];
+  if(s.err){ btn.classList.add("right"); document.querySelectorAll(".seg").forEach(b=>b.disabled=true); good(s.why); }
+  else{ btn.classList.add("wrong"); btn.disabled=true; bad((Q.misses&&Q.misses[k])||"That part is fine. Keep looking."); }
+}
+function good(why){
+  locked=true; Snd.correct();
+  steps=Math.max(0,steps-1); hall.flash=16;
+  burst(hall.zx+14,HY+10,["#6FE0D0","#BFF5EC","#3FC1B0"],18); burst(330,HY+8,["#FFF3B8","#FFE38A"],8);
+  updateDist();
+  const fb=$("feedback"); fb.className="feedback on good"; fb.innerHTML=`<strong>You shove it back.</strong>${why}`;
+  const last=qi===LEVELS[cur].qs.length-1;
+  const nb=$("nextBtn"); nb.hidden=false; nb.textContent=last?"Claim the antidote piece":"Next card"; nb.focus();
+}
+function bad(why){
+  steps++; Snd.wrong(); hall.red=14;
+  const w=$("hallWrap"); w.classList.remove("shake"); void w.offsetWidth; w.classList.add("shake");
+  updateDist();
+  const fb=$("feedback"); fb.className="feedback on bad"; fb.innerHTML=`<strong>It lurches closer.</strong>${why} Try another answer.`;
+  if(steps>=MAX_STEPS){ locked=true; setTimeout(overrun,700); }
+}
+function overrun(){
+  Snd.overrun(); hall.red=40;
+  msg("Overrun!",`<p>The zombie caught you in the ${LEVELS[cur].room}. You made it out the back door with your notes.</p><p>Review the field notes, then take this wing again from the first card. You can try as many times as you need.</p>`,
+    [["Read the field notes","btn ink",()=>{closeMsg(); startLevel(cur);}]]);
+}
+function next(){
+  Snd.click();
+  const L=LEVELS[cur];
+  if(qi<L.qs.length-1){ qi++; renderQ(); $("qcard").scrollIntoView({block:"nearest"}); return; }
+  const first=!cleared[cur]; cleared[cur]=true; save();
+  const n=cleared.filter(Boolean).length;
+  stopHeartbeat();
+  if(n===4&&first){
+    Snd.clear();
+    msg("Antidote complete.",`<p>You recovered ${L.piece}. That's all four pieces.</p>`,
+      [["Mix the cure","btn",()=>{closeMsg(); Snd.cure(); show("s-finale");}]],true);
+  }else{
+    Snd.clear();
+    msg("Wing cleared.",`<p>You recovered ${L.piece} from the ${L.room}. Antidote progress: ${n} of 4.</p>`,
+      [["Back to the catalog","btn",()=>{closeMsg(); renderMap(); show("s-map");}]],true);
+  }
+}
+
+/* ============ MODALS ============ */
+let lastFocus=null;
+function openNotes(){
+  const L=LEVELS[cur]; Snd.page();
+  $("notesTitle").textContent=`Field notes: ${L.topic}`;
+  $("notesBody").innerHTML=L.notes;
+  lastFocus=document.activeElement;
+  $("m-notes").classList.add("on"); $("closeNotes").focus();
+}
+function closeNotes(){ $("m-notes").classList.remove("on"); Snd.click(); if(lastFocus&&lastFocus.focus) lastFocus.focus(); }
+function msg(title,body,actions,cure){
+  const t=$("msgTitle"); t.textContent=title; t.className="big-msg"+(cure?" cure":"");
+  $("msgBody").innerHTML=body;
+  const a=$("msgActions"); a.innerHTML="";
+  actions.forEach(([label,cls,fn])=>{const b=document.createElement("button"); b.className=cls; b.textContent=label; b.onclick=fn; a.appendChild(b);});
+  $("m-msg").classList.add("on"); a.querySelector("button").focus();
+}
+function closeMsg(){ $("m-msg").classList.remove("on"); }
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"&&$("m-notes").classList.contains("on")) closeNotes(); });
+document.addEventListener("pointerdown",()=>Snd.unlock(),{once:true});
+
+/* ============ WIRING ============ */
+const sb=$("soundBtn");
+function paintSound(){ sb.textContent=Snd.on?"Sound on":"Sound off"; sb.setAttribute("aria-pressed",Snd.on); }
+sb.onclick=()=>{ Snd.toggle(); paintSound(); if(Snd.on&&$("s-level").classList.contains("on")) startHeartbeat(); };
+paintSound();
+$("startBtn").onclick=()=>{ Snd.start(); renderMap(); show("s-map"); };
+$("resetBtn").onclick=()=>{ Snd.click(); cleared=[false,false,false,false]; save(); renderMap(); show("s-map"); };
+$("toTitle").onclick=()=>{ Snd.click(); renderMap(); show("s-title"); };
+$("toMap").onclick=()=>{ Snd.click(); renderMap(); show("s-map"); };
+$("notesBtn").onclick=openNotes;
+$("closeNotes").onclick=closeNotes;
+$("nextBtn").onclick=next;
+$("againBtn").onclick=()=>{ Snd.start(); cleared=[false,false,false,false]; save(); renderMap(); show("s-map"); };
+$("reviewBtn").onclick=()=>{ Snd.click(); renderMap(); show("s-map"); };
+
+load(); renderMap(); initHall();
+titleDraw=makeParade("titleCv",Z_PALS,42,false);
+finaleDraw=makeParade("finaleCv",CURED_PALS,99,true);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
